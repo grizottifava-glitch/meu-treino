@@ -18,7 +18,7 @@
 <style>
 :root{
   --bg:#EEF0F3; --surface:#FFFFFF; --surface2:#F5F6F8; --ink:#15171B; --muted:#5E6570; --line:#D9DDE3;
-  --brand:#D7263D; --run:#1F4FE0; --gym:#8B3FB0; --today:#D7263D; --done:#12A06A; --other:#6B7280;
+  --alc:#E8A100; --brand:#D7263D; --run:#1F4FE0; --gym:#8B3FB0; --today:#D7263D; --done:#12A06A; --other:#6B7280;
   --t-regen:#2B9A93; --t-leve:#1F4FE0; --t-ritmo:#E67700; --t-tiros:#D6336C; --t-longao:#0B3D91; --t-teste:#E03131;
   --watch:#16181C; --watch-ink:#F3F4F6; --watch-muted:#9AA1AC;
   color-scheme: light;
@@ -292,6 +292,25 @@ body.live .livebar{display:block}
 .mtot{font-size:13px;color:var(--muted);padding:8px 0 12px;border-top:1px solid var(--line)}
 .meal .chk{width:100%}
 .flexchk{width:100%}
+.movebtn{display:inline-flex;align-items:center;gap:6px;margin-top:14px;padding:9px 14px;border-radius:999px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:var(--watch-ink);font-weight:600;font-size:14px}
+.movebtn.solid{background:var(--watch-ink);color:var(--watch);border-color:var(--watch-ink)}
+.mlist{display:grid;gap:6px;margin-top:6px}
+.mday{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface2)}
+.mday b{font-weight:600;font-size:15px}
+.mday span{font-size:13px;color:var(--muted);text-align:right}
+.mday:disabled{opacity:.45}
+.mday.swap span{color:var(--t-ritmo);font-weight:600}
+.alcrow{display:flex;gap:8px;align-items:stretch}
+.alcbtn{flex:1;min-width:0;display:flex;align-items:center;gap:14px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:18px;padding:12px 16px}
+.alcbtn .box{width:28px;height:28px;border-radius:9px;border:2px solid var(--muted);flex-shrink:0;display:grid;place-items:center;font-size:15px}
+.alcbtn .lbl b{display:block;font-weight:600}
+.alcbtn .lbl span{font-size:14px;color:var(--muted)}
+.alcrow.on .alcbtn{border-color:var(--alc);background:color-mix(in srgb,var(--alc) 12%,var(--surface))}
+.alcrow.on .alcbtn .box{border-color:var(--alc);background:var(--alc)}
+.stepper{display:flex;align-items:center;gap:4px;background:var(--surface);border:1.5px solid var(--alc);border-radius:18px;padding:0 6px}
+.stepper button{width:34px;height:34px;border-radius:50%;border:none;background:var(--surface2);font-size:20px;font-weight:700;line-height:1}
+.stepper b{min-width:18px;text-align:center;font-family:"Barlow Condensed",sans-serif;font-size:22px}
+.day .alc{font-size:10px;margin-left:2px;vertical-align:1px}
 .stats .stat:last-child:nth-child(odd){grid-column:1/-1}
 .dchips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .dchip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface)}
@@ -384,6 +403,7 @@ body.live .livebar{display:block}
   </section>
 
   <p class="syncnote" id="syncnote"></p>
+  <p class="syncnote" style="margin-top:2px">Versão 8 · mudar corrida de dia e bebida alcoólica</p>
 </div>
 
 <div class="livebar" id="livebar" role="status">
@@ -459,6 +479,22 @@ body.live .livebar{display:block}
     <div class="acts" id="facts"></div>
     <button class="link danger" id="fdel"></button>
     <button class="link" data-close="fmodal">Cancelar</button>
+  </div>
+</div>
+
+<!-- Mudar corrida de dia -->
+<div class="modal" id="mmodal" aria-hidden="true">
+  <div class="scrim" data-close="mmodal"></div>
+  <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h3 id="mtitle">Mudar corrida de dia</h3>
+    <p id="msub"></p>
+    <span class="field">Escolha o novo dia</span>
+    <div class="mlist" id="mlist"></div>
+    <label class="field" for="mdate">Ou outra data</label>
+    <div class="wform"><input class="txt" id="mdate" type="date"><button class="btn primary" id="mgo">Mover</button></div>
+    <p class="hint">Se o dia escolhido já tiver corrida, os dois treinos trocam de lugar.</p>
+    <button class="link danger" id="mundo">Desfazer mudança</button>
+    <button class="link" data-close="mmodal">Cancelar</button>
   </div>
 </div>
 
@@ -596,7 +632,7 @@ body.live .livebar{display:block}
     const d=addD(START,w*7+i), dow=(d.getDay()+6)%7+1;
     if(d<PLAN_START||d>PLAN_END) continue;
     const run = w<WEEKS ? (dow===1?MON[w]:dow===3?WED[w]:dow===4?THU[w]:dow===6?SAT[w]:null) : sugFor(w,dow);
-    PLAN[key(d)]={date:d,week:w+1,dow,run,gym:dow<=5?gymFor(dow,w+1):null};
+    PLAN[key(d)]={date:d,week:w+1,dow,run,run0:run,gym:dow<=5?gymFor(dow,w+1):null};
   }
   const KEYS=Object.keys(PLAN).sort();
   const totalMin=st=>st.reduce((a,s)=>a+(s.rep? s.rep*s.steps.reduce((b,x)=>b+(typeof x.d==="number"?x.d:0),0):(typeof s.d==="number"?s.d:0)),0);
@@ -604,21 +640,21 @@ body.live .livebar{display:block}
   const parseKey=k=>{const a=k.split("-");return new Date(+a[0],+a[1]-1,+a[2])};
 
   /* ================= Estado ================= */
-  let done={}, extra={}, edits={}, active=null, meals={}, weights={}, dietOpt={}, flex={};
+  let done={}, extra={}, edits={}, active=null, meals={}, weights={}, dietOpt={}, flex={}, runAt={}, alc={};
   const LS="plano-corrida-done-v1", LS2="plano-corrida-extra-v1";
   const uid=()=>Math.random().toString(36).slice(2,9);
   try{ done=JSON.parse(localStorage.getItem(LS)||"{}")||{} }catch(e){}
-  try{ const o=JSON.parse(localStorage.getItem(LS2)||"{}")||{}; extra=o.extra||{}; edits=o.edit||{}; active=o.active||null; meals=o.meals||{}; weights=o.weights||{}; dietOpt=o.dietOpt||{}; flex=o.flex||{}; }catch(e){}
+  try{ const o=JSON.parse(localStorage.getItem(LS2)||"{}")||{}; extra=o.extra||{}; edits=o.edit||{}; active=o.active||null; meals=o.meals||{}; weights=o.weights||{}; dietOpt=o.dietOpt||{}; flex=o.flex||{}; runAt=o.runAt||{}; alc=o.alc||{}; }catch(e){}
   function normalize(){ for(const k in extra){ (extra[k]||[]).forEach(x=>{ if(!x.u) x.u=uid(); }); } }
   normalize();
   let dbRef=null;
   const $=id=>document.getElementById(id);
   $("syncnote").textContent="Progresso salvo neste aparelho.";
-  function saveLocal(){ try{ localStorage.setItem(LS,JSON.stringify(done)); localStorage.setItem(LS2,JSON.stringify({extra,edit:edits,active,meals,weights,dietOpt,flex})); }catch(e){} }
+  function saveLocal(){ try{ localStorage.setItem(LS,JSON.stringify(done)); localStorage.setItem(LS2,JSON.stringify({extra,edit:edits,active,meals,weights,dietOpt,flex,runAt,alc})); }catch(e){} }
   let writing=Promise.resolve();
   function save(){
     saveLocal();
-    if(dbRef){ const snap=JSON.parse(JSON.stringify({done,extra,edit:edits,active,meals,weights,dietOpt,flex})); writing=writing.then(()=>dbRef.set(snap)).catch(()=>{}); }
+    if(dbRef){ const snap=JSON.parse(JSON.stringify({done,extra,edit:edits,active,meals,weights,dietOpt,flex,runAt,alc})); writing=writing.then(()=>dbRef.set(snap)).catch(()=>{}); }
   }
   async function initDb(){
     try{
@@ -632,7 +668,7 @@ body.live .livebar{display:block}
         const r=snap.data()||{};
         done=Object.assign({},done,r.done||{});
         extra=Object.assign({},extra,r.extra||{});
-        edits=Object.assign({},edits,r.edit||{}); meals=Object.assign({},meals,r.meals||{}); weights=Object.assign({},weights,r.weights||{}); dietOpt=Object.assign({},dietOpt,r.dietOpt||{}); flex=Object.assign({},flex,r.flex||{});
+        edits=Object.assign({},edits,r.edit||{}); meals=Object.assign({},meals,r.meals||{}); weights=Object.assign({},weights,r.weights||{}); dietOpt=Object.assign({},dietOpt,r.dietOpt||{}); flex=Object.assign({},flex,r.flex||{}); if(r.runAt) runAt=Object.assign({},runAt,r.runAt); alc=Object.assign({},alc,r.alc||{}); applyMoves();
         if(r.active!==undefined && !active) active=r.active;
         normalize(); saveLocal(); renderAll();
       }
@@ -641,6 +677,27 @@ body.live .livebar{display:block}
   }
 
   /* ================= Registros ================= */
+  function applyMoves(){
+    const to={}; for(const k in runAt){ const s=runAt[k]; if(s&&s!=="none") to[s]=k; }
+    KEYS.forEach(k=>{ const p=PLAN[k], s=runAt[k];
+      p.run = s===undefined ? p.run0 : (s==="none" ? null : (PLAN[s]?PLAN[s].run0:null));
+      p.movedFrom = (s&&s!=="none"&&s!==k) ? s : null;
+      p.movedTo = (s!==undefined && p.run0 && to[k] && to[k]!==k) ? to[k] : null; });
+  }
+  applyMoves();
+  const srcOf=k=>{ const s=runAt[k]; return s===undefined ? (PLAN[k].run0?k:null) : (s==="none"?null:s); };
+  function setSrc(k,s){ if(s===k||(s===null&&!PLAN[k].run0)) delete runAt[k]; else runAt[k]= s===null?"none":s; }
+  function setRunEdit(k,v){ const e=Object.assign({},edits[k]); if(v) e.run=v; else delete e.run; if(Object.keys(e).length) edits[k]=e; else delete edits[k]; }
+  function moveRun(A,B,silent){
+    if(!PLAN[A]||!PLAN[B]||A===B) return false;
+    if(isLive(A+":run")||isDone(A+":run")){ toast("Essa corrida já foi registrada. Desmarque o registro antes de mudar o dia."); return false; }
+    if(isLive(B+":run")||isDone(B+":run")){ toast("O outro dia já tem corrida registrada."); return false; }
+    const sa=srcOf(A), sb=srcOf(B), ea=edits[A]&&edits[A].run, eb=edits[B]&&edits[B].run;
+    setSrc(B,sa); setSrc(A,sb); setRunEdit(B,ea); setRunEdit(A,eb);
+    applyMoves(); save(); renderAll();
+    if(!silent) toast(sb?"Corridas trocadas de dia.":"Corrida movida para "+shortDate(PLAN[B].date)+".");
+    return true;
+  }
   const rName=k=>(edits[k]&&edits[k].run)||null;
   const gName=k=>{ const p=PLAN[k]; return (edits[k]&&edits[k].gym)||(p&&p.gym)||null; };
   const pid=id=>{ const a=id.split(":"); return a[1]==="x"?{k:a[0],x:a[2]}:{k:a[0],kind:a[1]}; };
@@ -703,7 +760,9 @@ body.live .livebar{display:block}
     let h=""; const rEd=rName(k), g=gName(k), gEd=!!(edits[k]&&edits[k].gym);
     if(p.run){
       const T=TYPES[p.run.t];
-      h+=`<div class="watch" style="--c:var(${T.c})"><div class="arc"></div><p class="date">${longDate(p.date)} · semana ${p.week}</p><span class="kind">${T.n}</span><div class="big">${p.run.est?"~":""}${runMin(p.run)}<small>min</small></div><p class="title">${esc(rEd||p.run.ti)}</p>${rEd?`<p class="note" style="margin:-6px 0 12px">Programado: ${esc(p.run.ti)}. As etapas abaixo são as do plano original.</p>`:""}${stepsHTML(p.run.st)}${p.run.nt?`<p class="note">${esc(p.run.nt)}</p>`:""}</div>`;
+      h+=`<div class="watch" style="--c:var(${T.c})"><div class="arc"></div><p class="date">${longDate(p.date)} · semana ${p.week}</p><span class="kind">${T.n}</span><div class="big">${p.run.est?"~":""}${runMin(p.run)}<small>min</small></div><p class="title">${esc(rEd||p.run.ti)}</p>${rEd?`<p class="note" style="margin:-6px 0 12px">Programado: ${esc(p.run.ti)}. As etapas abaixo são as do plano original.</p>`:""}${stepsHTML(p.run.st)}${p.run.nt?`<p class="note">${esc(p.run.nt)}</p>`:""}${p.movedFrom?`<p class="note">↪ Treino trazido de ${longDate(PLAN[p.movedFrom].date).toLowerCase()}.</p>`:""}${(isDone(k+":run")||isLive(k+":run"))?"":`<button class="movebtn" data-move="${k}">⇄ Mudar de dia</button>`}</div>`;
+    } else if(p.movedTo){
+      h+=`<div class="watch rest" style="--c:var(--t-ritmo)"><div class="arc"></div><p class="date">${longDate(p.date)} · semana ${p.week}</p><div class="big" style="font-size:40px">Corrida movida</div><p class="title">O treino deste dia foi para ${longDate(PLAN[p.movedTo].date).toLowerCase()}.</p><button class="movebtn solid" data-undo="${k}">Desfazer</button> <button class="movebtn" data-open="${p.movedTo}">Ver o treino</button></div>`;
     } else {
       h+=`<div class="watch rest" style="--c:var(--gym)"><div class="arc"></div><p class="date">${longDate(p.date)} · semana ${p.week}</p><div class="big">${g?"Sem corrida":"Descanso"}</div><p class="title">${g?"Dia só de musculação. Aproveite para caminhar e alongar.":"Descanso total. Recuperação também é treino."}</p></div>`;
     }
@@ -714,6 +773,8 @@ body.live .livebar{display:block}
       const id=k+":x:"+x.u, X=XT[x.tp]||XT.other, st=rowTag(id);
       h+=`<div class="chkrow"><button class="chk xrow ${st.cls}" data-k="${id}"><span class="box">${tick}</span><span class="lbl"><b>${esc(x.n)}</b><span>${X.n} · adicionado</span></span>${st.tag}</button><button class="editbtn" data-xe="${id}" aria-label="Editar ${esc(x.n)}">${pencil}</button></div>`;
     });
+    { const a=alc[k]||0;
+      h+=`<div class="alcrow${a?" on":""}"><button class="alcbtn" data-alc="${k}" aria-pressed="${!!a}"><span class="box">${a?"🍺":""}</span><span class="lbl"><b>Bebida alcoólica</b><span>${a? a+" dose"+(a>1?"s":"")+" · cerca de "+(a*130)+" kcal" : "Marcar consumo neste dia"}</span></span></button>${a?`<div class="stepper"><button data-alcd="${k}|-1" aria-label="Menos uma dose">−</button><b>${a}</b><button data-alcd="${k}|1" aria-label="Mais uma dose">+</button></div>`:""}</div>`; }
     h+=`<button class="addbtn" data-add="${k}">+ Adicionar treino</button></div>`;
     if(g) h+=gymCard(k);
     return h;
@@ -747,7 +808,7 @@ body.live .livebar{display:block}
       if(!p){ h+=`<div class="day out"><span class="dn">${dd}</span></div>`; continue; }
       const g=gName(k), rOk=isDone(k+":run"), gOk=isDone(k+":gym"), nx=(extra[k]||[]).length;
       const all=(p.run||g)&&(!p.run||rOk)&&(!g||gOk), live=!!active&&active.id.indexOf(k+":")===0;
-      let inner=`<span class="dn">${dd}</span>`;
+      let inner=`<span class="dn">${dd}${alc[k]?'<span class="alc">🍺</span>':""}</span>`;
       if(p.run){ const T=TYPES[p.run.t]; inner+=`<span class="rb${rOk?" ok":""}${p.run.sug?" sug":""}" style="--c:var(${T.c})">${T.ab} ${p.run.est?(p.dow===6?"10k":"5k"):runMin(p.run)+"'"}</span>`; }
       if(g) inner+=`<span class="gb${gOk?" ok":""}"></span>`;
       if(nx) inner+=`<span class="xb">+${nx}</span>`;
@@ -796,7 +857,8 @@ body.live .livebar{display:block}
       `<div class="stat" style="--c:var(--run)"><span>Distância</span><b>${fKm(km)}<small>km</small></b><em>${pk?"pace médio "+fPace(pm,pk):"registre os km ao finalizar"}</em></div>`+
       `<div class="stat" style="--c:var(--gym)"><span>Tempo de musculação</span><b>${fDur(gm)}</b><em>${gn} treino${gn===1?"":"s"}</em></div>`+
       `<div class="stat" style="--c:var(--done)"><span>Total treinado</span><b>${fDur(rm+gm+om)}</b><em>${list.length} sessões</em></div>`+
-      `<div class="stat" style="--c:var(--brand)"><span>Dias com 30 flexões</span><b>${Object.keys(flex).filter(inPeriod2).length}</b><em>${Object.keys(flex).filter(inPeriod2).length*30} flexões · sequência de ${flexStreak()} dias</em></div>`;
+      `<div class="stat" style="--c:var(--brand)"><span>Dias com 30 flexões</span><b>${Object.keys(flex).filter(inPeriod2).length}</b><em>${Object.keys(flex).filter(inPeriod2).length*30} flexões · sequência de ${flexStreak()} dias</em></div>`+
+      (()=>{ const ks=Object.keys(alc).filter(inPeriod2), ds=ks.reduce((a,k)=>a+alc[k],0); return `<div class="stat" style="--c:var(--alc)"><span>Dias com bebida alcoólica</span><b>${ks.length}</b><em>${ds} dose${ds===1?"":"s"} · cerca de ${(ds*130).toLocaleString("pt-BR")} kcal</em></div>`; })();
     // gráficos por semana (sempre o plano todo)
     const W=[]; for(let w=1;w<=TOTALW;w++) W.push({r:0,g:0,km:0});
     all.forEach(s=>{ const p=PLAN[s.k]; if(!p) return; const o=W[p.week-1];
@@ -946,6 +1008,20 @@ body.live .livebar{display:block}
     $("fchips").innerHTML=list.map(x=>`<button type="button" class="chipb${x===v?" on":""}" data-chip="${esc(x)}">${esc(x)}</button>`).join("");
     $("ftype").innerHTML=Object.keys(XT).map(t=>`<button type="button" class="chipb${t===F.tp?" on":""}" data-tp="${t}">${XT[t].n}</button>`).join("");
   }
+  let MV=null;
+  function openMove(k){
+    const p=PLAN[k]; if(!p||!p.run) return; MV=k;
+    $("msub").textContent=(rName(k)||p.run.ti)+" · programada para "+longDate(p.date).toLowerCase();
+    const base=parseKey(k); let h="";
+    for(let i=-2;i<=7;i++){ if(!i) continue; const d=addD(base,i), dk=key(d), q=PLAN[dk]; if(!q) continue;
+      const blocked=isDone(dk+":run")||isLive(dk+":run");
+      h+=`<button class="mday${q.run?" swap":""}" data-mto="${dk}"${blocked?" disabled":""}><b>${shortDate(d)}</b><span>${blocked?"corrida já feita":q.run?"troca com "+esc(rName(dk)||q.run.ti):"sem corrida"}</span></button>`; }
+    $("mlist").innerHTML=h;
+    $("mdate").min=key(PLAN_START); $("mdate").max=key(PLAN_END); $("mdate").value="";
+    $("mundo").style.display=(p.movedFrom)?"":"none";
+    openM("mmodal");
+  }
+  function doMove(to){ if(!MV) return; const from=MV; if(moveRun(from,to)){ closeM("mmodal"); MV=null; if(openK===from) openSheet(to); } }
   function openPlanEdit(id){
     const q=pid(id), p=PLAN[q.k]; if(!p) return;
     F={mode:"plan",k:q.k,kind:q.kind};
@@ -1264,6 +1340,11 @@ body.live .livebar{display:block}
     const o=t.closest("[data-open]"); if(o){ openSheet(o.dataset.open); return; }
     const pr=t.closest("[data-per]"); if(pr){ per=pr.dataset.per; renderHist(); return; }
     if(t.closest("[data-flex]")){ toggleFlex(); return; }
+    const mv=t.closest("[data-move]"); if(mv){ openMove(mv.dataset.move); return; }
+    const mt=t.closest("[data-mto]"); if(mt){ doMove(mt.dataset.mto); return; }
+    const un=t.closest("[data-undo]"); if(un){ const k=un.dataset.undo, p=PLAN[k]; if(p&&p.movedTo) moveRun(p.movedTo,k,true)&&toast("Mudança desfeita."); return; }
+    const al=t.closest("[data-alc]"); if(al){ const k=al.dataset.alc; if(alc[k]) delete alc[k]; else alc[k]=1; save(); renderAll(); return; }
+    const ald=t.closest("[data-alcd]"); if(ald){ const s=ald.dataset.alcd.split("|"), n=(alc[s[0]]||0)+(+s[1]); if(n<1) delete alc[s[0]]; else alc[s[0]]=Math.min(n,30); save(); renderAll(); return; }
     const exb=t.closest("[data-ex]"); if(exb){ openEx(exb.dataset.ex,exb.dataset.sets,exb.dataset.rest); return; }
     const ml=t.closest("[data-meal]"); if(ml){ const tk=todayK(), m=ml.dataset.meal, d=Object.assign({},meals[tk]); if(d[m]) delete d[m]; else d[m]=true; if(Object.keys(d).length) meals[tk]=d; else delete meals[tk]; save(); renderAll(); return; }
     const op=t.closest("[data-opt]"); if(op){ const s=op.dataset.opt.split("|"); dietOpt[s[0]]=+s[1]; save(); renderAll(); return; }
@@ -1285,6 +1366,7 @@ body.live .livebar{display:block}
     else if($("fmodal").classList.contains("open")) closeM("fmodal");
     else if($("smodal").classList.contains("open")) closeM("smodal");
     else if($("emodal").classList.contains("open")) closeM("emodal");
+    else if($("mmodal").classList.contains("open")) closeM("mmodal");
     else closeSheet();
   });
   document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
@@ -1298,6 +1380,8 @@ body.live .livebar{display:block}
   window.addEventListener("hashchange",fromNotif);
   if("serviceWorker" in navigator){ navigator.serviceWorker.addEventListener("message",e=>{ if(e.data&&e.data.type==="finalizar"&&active) openFinish(); }); }
 
+  $("mgo").onclick=()=>{ const v=$("mdate").value; if(!v||!PLAN[v]){ $("mdate").classList.add("err"); return; } doMove(v); };
+  $("mundo").onclick=()=>{ if(!MV) return; const p=PLAN[MV]; if(p&&p.movedFrom){ const k=MV; if(moveRun(k,p.movedFrom,true)){ toast("Mudança desfeita."); closeM("mmodal"); if(openK===k) openSheet(p.movedFrom); } } };
   applyTheme(); renderStatic(); renderAll(); initDb(); fromNotif(); requestAnimationFrame(animLoop);
   if(active) setTimeout(()=>notifyStart(false),800);
   setInterval(renderLive,1000);
@@ -1305,7 +1389,11 @@ body.live .livebar{display:block}
 })();
 </script>
 <script>
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{ r.update(); }).catch(()=>{});
+  let recarregou=false, tinha=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(recarregou||!tinha) return; recarregou=true; location.reload(); });
+}
 </script>
 </body>
 </html>

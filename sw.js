@@ -1,17 +1,16 @@
-const CACHE = "meu-treino-v6";
+const CACHE = "meu-treino-v8";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-any-192.png", "icon-any-512.png"];
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-// Página: rede primeiro (para receber atualizações); demais arquivos: cache primeiro
+// Página: sempre busca a versão mais nova na internet; sem internet, usa a cópia salva
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
-  const isPage = e.request.mode === "navigate";
-  if (isPage) {
-    e.respondWith(fetch(e.request).then(res => {
+  if (e.request.mode === "navigate") {
+    e.respondWith(fetch(e.request, { cache: "no-store" }).then(res => {
       const copy = res.clone(); caches.open(CACHE).then(c => c.put("index.html", copy)); return res;
     }).catch(() => caches.match("index.html")));
     return;
@@ -21,15 +20,13 @@ self.addEventListener("fetch", e => {
     return res;
   })));
 });
-// Botão "Finalizar" da notificação
+// Botão "Finalizar" da notificação do treino em andamento
 self.addEventListener("notificationclick", e => {
   const finish = e.action === "finalizar" || !e.action;
   e.notification.close();
   const url = new URL(finish ? "./#finalizar" : "./", self.registration.scope).href;
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
-    for (const c of list) {
-      if ("focus" in c) { c.postMessage({ type: "finalizar" }); return c.focus(); }
-    }
+    for (const c of list) { if ("focus" in c) { c.postMessage({ type: "finalizar" }); return c.focus(); } }
     return self.clients.openWindow(url);
   }));
 });
